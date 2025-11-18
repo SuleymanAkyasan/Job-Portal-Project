@@ -8,7 +8,7 @@ Bu proje, bir iş portalı (iş arayanlar ve iş verenler için) backend servisi
 * **Spring Boot 3.4.7**
 * **Spring Web:** RESTful API endpoint'leri için.
 * **Spring Data JPA (Hibernate):** Veritabanı işlemleri ve ORM için.
-* **Spring Security:** Endpoint güvenliği ve Cookie tabanlı kimlik doğrulama için.
+* **Spring Security:** Endpoint güvenliği ve JWT (JSON Web Token) tabanlı kimlik doğrulama için.
 * **MySQL:** Veritabanı.
 
 ## ✨ Temel Özellikler
@@ -21,17 +21,16 @@ Bu proje, bir iş portalı (iş arayanlar ve iş verenler için) backend servisi
 * **Başvuru Görüntüleme:** İş verenler için kendi ilanlarına gelen başvuruları listeleme.
 
 ---
-## 🔐 API Güvenlik Mimarisi: Cookie (Oturum)
+## 🔐 API Güvenlik Mimarisi: JWT (Stateless)
 
-Bu API, **JWT (Token)** kullanmaz. Bunun yerine, Spring Security'nin standart `formLogin` mekanizması üzerine kurulu **Cookie (Oturum) tabanlı kimlik doğrulama** kullanır.
+Bu API, modern ve ölçeklenebilir JWT (JSON Web Token) tabanlı Stateless (Durumsuz) kimlik doğrulama yapısı kullanır.
 
-Bu, API'yi kullanmak (örn: Postman) için bir akış gerektirir:
+API'yi kullanmak (örn: Postman veya Frontend) için aşağıdaki akış takip edilmelidir:
 
-1.  **`POST /login`** endpoint'ine `x-www-form-urlencoded` formatında `username` ve `password` gönderin.
-2.  Sunucu, yanıt olarak `200 OK` ve bir `JSESSIONID` cookie'si (Çerez) döndürür.
-3.  Postman (veya tarayıcınız) bu cookie'yi otomatik olarak saklar.
-4.  Artık korumalı endpoint'lere (örn: `/api/v1/profile/seeker/my-profile`) istek attığınızda, Postman bu cookie'yi otomatik olarak isteğe ekler ve Spring Security oturumunuzu tanır.
-5.  **`POST /logout`** çağrıldığında bu oturum ve cookie sonlandırılır.
+1.  **`POST /api/v1/auth/login`** endpoint'ine `JSON` formatında `email` ve `password` gönderin.
+2.  Sunucu, yanıt olarak başarılı girişte `200 OK` ve bir `Access Token (JWT)` döndürür.
+3.  Korumalı endpoint'lere (örn: /api/v1/profile/seeker/my-profile) istek atarken, bu token'ı isteğin Header kısmına eklemeniz gerekir.
+4.  Sunucu tarafında oturum tutulmadığı için /logout endpoint'ine gerek yoktur. İstemci tarafında (Tarayıcı/Mobil) token'ın silinmesi çıkış işlemi için yeterlidir.
 
 ---
 
@@ -47,8 +46,8 @@ Bu, API'yi kullanmak (örn: Postman) için bir akış gerektirir:
 
 | Metot | URL | Body (Request) | Açıklama |
 | :--- | :--- | :--- | :--- |
-| `POST` | `/login` | `x-www-form-urlencoded` <br> `username` (email) <br> `password` (şifre) | Oturum başlatır ve `JSESSIONID` cookie'si döndürür. |
-| `POST` | `/logout` | (Boş) | Mevcut oturumu sonlandırır. |
+| `POST` | `/api/v1/auth/login` | `JSON` <br> `email` (email) <br> `password` (şifre) | Giriş yapar ve `JWT` Token döndürür. |
+| `POST` | `/logout` | (Boş) | Çıkış işlemi için istemci tarafında Token'ın silinmesi yeterlidir. |
 | `POST` | `/api/v1/auth/register` | `JSON` (RegisterRequestDto) | Yeni kullanıcı (Job Seeker veya Recruiter) kaydı oluşturur. |
 | `GET` | `/api/v1/auth/user-types` | (Boş) | Kayıt formunda kullanılmak üzere kullanıcı tiplerini (`Recruiter`, `Job Seeker`) listeler. |
 
@@ -95,7 +94,7 @@ Bu, API'yi kullanmak (örn: Postman) için bir akış gerektirir:
 
 # Job Portal Project
 
-This project is a Spring Boot application that provides a backend service for a job portal (for job seekers and employers).
+This project is a Spring Boot application providing a backend service for a job portal (for job seekers and recruiters).
 
 ## 🚀 Technologies Used
 
@@ -103,30 +102,29 @@ This project is a Spring Boot application that provides a backend service for a 
 * **Spring Boot 3.4.7**
 * **Spring Web:** For RESTful API endpoints.
 * **Spring Data JPA (Hibernate):** For database operations and ORM.
-* **Spring Security:** For endpoint security and Cookie-based authentication.
+* **Spring Security:** For endpoint security and JWT (JSON Web Token) based authentication.
 * **MySQL:** Database.
 
 ## ✨ Core Features
 
-* **Role-Based Access:** Two distinct user roles: `Job Seeker` and `Recruiter`.
+* **Role-Based Access:** Two distinct user roles: **`Job Seeker`** and **`Recruiter`**.
 * **Authentication:** Secure registration (`/register`), login (`/login`), and logout (`/logout`) endpoints.
-* **Job Post Management:** Creating, updating, and listing job posts by recruiters.
-* **Profile Management:** Detailed profiles (text information) and photo/CV uploads for both roles.
-* **Job Search and Application:** Searching for listings, applying to jobs, and saving jobs for seekers.
-* **Viewing Applications:** Listing applications received for their own job posts (for recruiters).
+* **Job Posting Management:** Creating, updating, and listing job postings by recruiters.
+* **Profile Management:** Detailed profile (text info) and photo/CV upload for both roles.
+* **Job Search and Application:** Job search, applying for a job, and saving job postings for job seekers.
+* **Application Viewing:** Listing applications received for their own job postings for recruiters.
 
 ---
-## 🔐 API Security Architecture: Cookie (Session)
+## 🔐 API Security Architecture: JWT (Stateless)
 
-This API does **not** use **JWT (Tokens)**. Instead, it uses **Cookie (Session)-based authentication** built on Spring Security's standard `formLogin` mechanism.
+This API uses a modern and scalable **JWT (JSON Web Token)** based **Stateless** authentication structure.
 
-This requires a specific flow to use the API (e.g., in Postman):
+To use the API (e.g., Postman or Frontend), the following flow must be followed:
 
-1.  Send `username` and `password` in `x-www-form-urlencoded` format to the **`POST /login`** endpoint.
-2.  The server returns a `200 OK` response and a `JSESSIONID` cookie.
-3.  Postman (or your browser) automatically stores this cookie.
-4.  Now, when you make requests to protected endpoints (e.g., `/api/v1/profile/seeker/my-profile`), Postman automatically includes this cookie, and Spring Security recognizes your session.
-5.  When **`POST /logout`** is called, this session and cookie are terminated.
+1.  **`POST /api/v1/auth/login`** endpoint is sent `email` and `password` in **`JSON`** format.
+2.  The server returns **`200 OK`** and an **`Access Token (JWT)`** upon successful login.
+3.  When sending requests to protected endpoints (e.g., /api/v1/profile/seeker/my-profile), this token must be added to the request's **Header**.
+4.  Since no session is maintained on the server side, a **`/logout`** endpoint is not necessary. Deleting the token on the client side (Browser/Mobile) is sufficient for the logout operation.
 
 ---
 
@@ -136,52 +134,52 @@ This requires a specific flow to use the API (e.g., in Postman):
 
 | Method | URL | Description |
 | :--- | :--- | :--- |
-| `GET` | `/` | Welcome message indicating the API is running. |
+| **`GET`** | **`/`** | Welcome message indicating the API is running. |
 
-### 🔑 Authentication (Auth) - (Public)
+### 🔑 Authentication (Auth) - (Public Access)
 
 | Method | URL | Body (Request) | Description |
 | :--- | :--- | :--- | :--- |
-| `POST` | `/login` | `x-www-form-urlencoded` <br> `username` (email) <br> `password` (şifre) | Starts a session and returns a `JSESSIONID` cookie. |
-| `POST` | `/logout` | (Empty) | Terminates the current session. |
-| `POST` | `/api/v1/auth/register` | `JSON` (RegisterRequestDto) | Creates a new user (Job Seeker or Recruiter) registration. |
-| `GET` | `/api/v1/auth/user-types` | (Empty) | Lists user types (`Recruiter`, `Job Seeker`) for use in the registration form. |
+| **`POST`** | **`/api/v1/auth/login`** | **`JSON`** <br> **`email`** <br> **`password`** | Logs in and returns **`JWT`** Token. |
+| **`POST`** | **`/logout`** | (Empty) | Deleting the Token on the client side is sufficient for logout. |
+| **`POST`** | **`/api/v1/auth/register`** | **`JSON`** (RegisterRequestDto) | Creates a new user registration (Job Seeker or Recruiter). |
+| **`GET`** | **`/api/v1/auth/user-types`** | (Empty) | Lists user types (`Recruiter`, `Job Seeker`) to be used in the registration form. |
 
 ### 📄 Job Posts
 
 | Method | URL | Security | Description |
 | :--- | :--- | :--- | :--- |
-| `GET` | `/api/v1/jobs/search` | Public | Searches for job posts with parameters (job, location, etc.). |
-| `GET` | `/api/v1/jobs/{id}` | Protected | Fetches the details of a single job post. |
-| `GET` | `/api/v1/dashboard/jobs` | Protected | Fetches dashboard listings based on the logged-in user's role (Seeker/Recruiter). |
-| `POST` | `/api/v1/jobs` | Protected (Recruiter) | Creates a new job post. (Body: `JobPostActivity` JSON) |
-| `PUT` | `/api/v1/jobs/{id}` | Protected (Recruiter) | Updates an existing job post. (Body: `JobPostActivity` JSON) |
-| `GET` | `/api/v1/jobs/{jobId}/applicants`| Protected (Recruiter) | Fetches the list of applicants (`JobSeekerApply` list) for a specific job post. |
+| **`GET`** | **`/api/v1/jobs/search`** | Public Access | Searches for job postings with parameters (job title, location, etc.). |
+| **`GET`** | **`/api/v1/jobs/{id}`** | Protected | Retrieves the details of a single job posting. |
+| **`GET`** | **`/api/v1/dashboard/jobs`** | Protected | Retrieves dashboard job postings based on the logged-in user's role (Seeker/Recruiter). |
+| **`POST`** | **`/api/v1/jobs`** | Protected (Recruiter) | Creates a new job posting. (Body: `JobPostActivity` JSON) |
+| **`PUT`** | **`/api/v1/jobs/{id}`** | Protected (Recruiter) | Updates an existing job posting. (Body: `JobPostActivity` JSON) |
+| **`GET`** | **`/api/v1/jobs/{jobId}/applicants`**| Protected (Recruiter) | Retrieves the list of applicants (`JobSeekerApply` list) for a specific job posting. |
 
 ### 👤 Job Seeker Profile and Actions - (Protected)
 
 | Method | URL | Body (Request) | Description |
 | :--- | :--- | :--- | :--- |
-| `GET` | `/api/v1/profile/seeker/my-profile` | (Empty) | Fetches the logged-in job seeker's own profile. |
-| `PUT` | `/api/v1/profile/seeker/my-profile` | `JSON` (JobSeekerProfileDto)| Updates the profile's text information (name, city, skills, etc.). |
-| `POST` | `/api/v1/profile/seeker/photo` | `form-data` (key: `image`) | Uploads or updates the profile photo. |
-| `POST` | `/api/v1/profile/seeker/resume` | `form-data` (key: `resume`)| Uploads or updates the CV (PDF). |
-| `GET` | `/api/v1/profile/seeker/{id}` | (Empty) | Fetches any job seeker's (public) profile by ID. |
-| `POST` | `/api/v1/jobs/{jobId}/apply` | `JSON` (ApplyJobRequestDto) | Applies to a job post. (Can include an optional `coverLetter`) |
-| `POST` | `/api/v1/jobs/{id}/save` | (Empty) | Adds a job post to the "saved" list. |
-| `GET` | `/api/v1/profile/seeker/saved-jobs` | (Empty) | Lists all job posts saved by the logged-in user. |
+| **`GET`** | **`/api/v1/profile/seeker/my-profile`** | (Empty) | Retrieves the logged-in job seeker's own profile. |
+| **`PUT`** | **`/api/v1/profile/seeker/my-profile`** | **`JSON`** (JobSeekerProfileDto)| Updates the profile's text information (name, city, skills, etc.). |
+| **`POST`** | **`/api/v1/profile/seeker/photo`** | **`form-data`** (key: `image`) | Uploads or updates the profile photo. |
+| **`POST`** | **`/api/v1/profile/seeker/resume`** | **`form-data`** (key: `resume`)| Uploads or updates the CV (PDF). |
+| **`GET`** | **`/api/v1/profile/seeker/{id}`** | (Empty) | Retrieves the (public) profile of any job seeker by ID. |
+| **`POST`** | **`/api/v1/jobs/{jobId}/apply`** | **`JSON`** (ApplyJobRequestDto) | Applies to a job posting. (Can optionally include `coverLetter`) |
+| **`POST`** | **`/api/v1/jobs/{id}/save`** | (Empty) | Adds a job posting to the "saved" list. |
+| **`GET`** | **`/api/v1/profile/seeker/saved-jobs`** | (Empty) | Lists all saved job postings for the logged-in user. |
 
 ### 👔 Recruiter Profile - (Protected)
 
 | Method | URL | Body (Request) | Description |
 | :--- | :--- | :--- | :--- |
-| `GET` | `/api/v1/profile/recruiter/my-profile`| (Empty) | Fetches the logged-in recruiter's own profile. |
-| `PUT` | `/api/v1/profile/recruiter/my-profile`| `JSON` (RecruiterProfileDto)| Updates the profile's text information (name, company, city, etc.). |
-| `POST` | `/api/v1/profile/recruiter/photo` | `form-data` (key: `image`) | Uploads or updates the profile photo. |
+| **`GET`** | **`/api/v1/profile/recruiter/my-profile`**| (Empty) | Retrieves the logged-in recruiter's own profile. |
+| **`PUT`** | **`/api/v1/profile/recruiter/my-profile`**| **`JSON`** (RecruiterProfileDto)| Updates the profile's text information (name, company, city, etc.). |
+| **`POST`** | **`/api/v1/profile/recruiter/photo`** | **`form-data`** (key: `image`) | Uploads or updates the profile photo. |
 
 ### 📁 File Serving
 
 | Method | URL | Description |
 | :--- | :--- | :--- |
-| `GET` | `/photos/**` | Public | Serves uploaded photos (Recruiter or Seeker). (e.g., `/photos/candidate/1/profile.jpg`) 
-| `GET` | `/api/v1/profile/seeker/download-resume`| Protected | Downloads the job seeker's CV. (Parameters: `fileName` and `userID`) |
+| **`GET`** | **`/photos/**`** | Public Access | Serves uploaded photos (Recruiter or Seeker). (E.g.: `/photos/candidate/1/profil.jpg`) |
+| **`GET`** | **`/api/v1/profile/seeker/download-resume`**| Protected | Downloads the job seeker's CV. (Parameters: `fileName` and `userID`) |
